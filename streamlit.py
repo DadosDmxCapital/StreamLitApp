@@ -2,6 +2,7 @@ import os
 import pyodbc
 import pandas as pd
 import streamlit as st
+import streamlit_authenticator as stauth
 from datetime import datetime
 from dotenv import load_dotenv
 import base64
@@ -12,9 +13,39 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 import locale
+import yaml
+from yaml.loader import SafeLoader
+
+st.set_page_config(page_title="Relatório de Comissionamento", layout="wide")
+
+# Carregar configurações de autenticação
+with open("config.yaml", "r") as file:
+    config = yaml.load(file, Loader=SafeLoader)
+    
+authenticator = stauth.Authenticate(
+    config['credentials'],
+    config['cookie']['name'],
+    config['cookie']['key'],
+    config['cookie']['expiry_days']
+)
+
+# Autenticação
+try:
+    authenticator.login()
+except Exception as e:
+    st.error(e)
+
+# Verifica status de autenticação
+if st.session_state["authentication_status"]:
+    name = st.session_state["name"]
+    username = st.session_state["username"]
+    st.sidebar.success(f"Bem-vindo, {name}!")
+    authenticator.logout("Sair", "sidebar")
+else:
+    st.warning("⚠️ Por favor, faça login para acessar o relatório.")
+    st.stop()  # Interrompe a execução se o usuário não estiver autenticado
 
 # Configuração da página Streamlit
-st.set_page_config(page_title="Relatório de Comissionamento", layout="wide")
 st.title("Comissão de Operações")
 
 # Configurar locale para formatação de números com vírgula para decimais
