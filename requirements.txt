@@ -3,4 +3,6 @@ pandas==1.5.3
 streamlit==1.19.0
 python-dotenv==1.0.0
 reportlab==3.6.5
+streamlit-authenticator==0.2.3
+
 
