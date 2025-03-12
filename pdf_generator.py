@@ -1,3 +1,5 @@
+import pandas as pd
+import locale
 from io import BytesIO
 from datetime import datetime
 from reportlab.lib.pagesizes import letter, landscape
@@ -5,6 +7,15 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from reportlab.lib.units import inch
+
+# Configura o locale para o Brasil
+locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+
+def format_currency(value):
+    """Formata o valor monetário para o formato de moeda brasileira."""
+    if pd.isna(value):
+        return "R$ 0,00"
+    return locale.currency(value, grouping=True)
 
 def generate_pdf_report(df, filtered=False):
     """
@@ -52,11 +63,21 @@ def generate_pdf_report(df, filtered=False):
     # Limitar a 20 primeiras linhas para o PDF não ficar muito grande
     pdf_data = [df.columns.tolist()] + df.head(20).values.tolist()
     
+    # Aplicando formatação para os valores monetários e data
+    for i, row in enumerate(pdf_data[1:]):  # pular o cabeçalho
+        for j, value in enumerate(row):
+            if isinstance(value, (int, float)):
+                # Formatar valores monetários
+                pdf_data[i + 1][j] = format_currency(value)
+            elif isinstance(value, datetime):
+                # Formatar data como shortdate
+                pdf_data[i + 1][j] = value.strftime('%d/%m/%Y')
+    
     # Adicionar linha para totais (se o DataFrame tiver linhas)
     if len(df) > 0:
         totals_row = ["TOTAL"] + [""] * (len(df.columns) - 4) + [
-            df["DESAGIO"].iloc[-1] if df.index[-1] == "TOTAL" else "",
-            df["VALOR OPERADO"].iloc[-1] if df.index[-1] == "TOTAL" else ""
+            format_currency(df["DESAGIO"].iloc[-1]) if df.index[-1] == "TOTAL" else "",
+            format_currency(df["VALOR OPERADO"].iloc[-1]) if df.index[-1] == "TOTAL" else ""
         ]
         pdf_data.append(totals_row)
     
@@ -86,7 +107,7 @@ def generate_pdf_report(df, filtered=False):
     table = Table(pdf_data, colWidths=col_widths, repeatRows=1)
     
     # Estilo da tabela - ajustado para melhor legibilidade
-    style = TableStyle([
+    style = TableStyle([ 
         # Cabeçalho
         ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
