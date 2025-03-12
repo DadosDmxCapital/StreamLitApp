@@ -1,7 +1,7 @@
 import streamlit as st
 from authentication import setup_authentication
 from database import connect_to_database, fetch_data
-from data_processing import process_data, format_dataframes, rename_gerente  # Adicionei import aqui
+from data_processing import process_data, format_dataframes, rename_gerente
 from pdf_generator import generate_pdf_report
 from visualizations import create_visualizations
 import base64
@@ -30,19 +30,17 @@ try:
 
     with st.spinner('Carregando dados...'):
         df = fetch_data(conn)
-        
-    # Aplicar renomeação dos gerentes logo após carregar os dados
+
+    # Aplicar renomeação dos gerentes antes de qualquer filtragem
     if 'GERENTE' in df.columns:
-        df['GERENTE'] = df['GERENTE'].apply(rename_gerente)    
+        df['GERENTE'] = df['GERENTE'].apply(rename_gerente)
 
-    # Filtrar dados pelo gerente logado, filtro de acesso
-    if user_group == "ADM":
-        df_filtered = df  # Usuário admin vê tudo
-    else:
-        df_filtered = df[df["GERENTE"] == user_group]  # Apenas dados do próprio gerente
+    # Aplicar os filtros laterais primeiro
+    df_filtered = process_data(df)
 
-    # Aplicar os filtros laterais usando a função de data_processing.py
-    df_filtered = process_data(df_filtered)
+    # Filtrar dados pelo gerente logado
+    if user_group != "ADM":
+        df_filtered = df_filtered[df_filtered["GERENTE"] == user_group]  # Apenas dados do próprio gerente
 
     # Processar e formatar dados usando a função de data_processing.py
     df_grouped, df_grouped_with_totals, summary_stats = format_dataframes(df_filtered)

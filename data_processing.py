@@ -33,20 +33,23 @@ def format_short_date(date):
 def rename_gerente(gerente):
     if pd.isna(gerente):
         return gerente
-    
+
     mapping = {
         "*COMERCIAL - RFA - ADITAR ***": "RFA",
         "*COMERCIAL - ALX": "ALX",
         "*COMERCIAL - ANDRE TAVARES ***": "ANDRE TAVARES",
-        "*COMERCIAL - LEANDRO APARECIDO VIEIRA DE SOUSA": "LEANDRO AP",
+        "LEANDRO APARECIDO": "LEANDRO AP",
         "*COMERCIAL - LUIS FERNANDO DE JESUS LOMBELLO": "LUIS FERNANDO",
         "*COMERCIAL - MANUEL SANJI GOMES KOMIYAMA": "MANUEL",
         "*COMERCIAL - ROLAN GABRIEL SYLVESTRE MARINO": "ROLAN",
         "*COMERCIAL RODRIGO WEISSINGER CARVALHO***": "RODRIGO",
-        "Setor de Novos Negócios - DMX Capital": "DMX Capital"
+        "DMX FUNDO DE INVESTIMENTO EM DIREITOS CREDITORIOS": "DMX Capital",
+        "DMX FUNDO DE INVESTIMENTO EM DIREITOS CREDITORIOS": "DMX Capital",
+        "DMX FUNDO DE INVESTIMENTO EM DIREITOS CREDITORIOS": "DMX Capital"
     }
-    
-    return mapping.get(gerente, gerente)
+
+    gerente_normalizado = gerente.strip().upper()  # Remover espaços extras e padronizar caixa alta
+    return mapping.get(gerente_normalizado, gerente)
 
 def process_data(df):
     """

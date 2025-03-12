@@ -89,19 +89,19 @@ def generate_pdf_report(df, filtered=False):
     
     # Ajustar larguras baseadas no tipo de dados
     if 'CEDENTE' in col_indices:
-        col_widths[col_indices['CEDENTE']] = 3.5*inch
+        col_widths[col_indices['CEDENTE']] = 3.0*inch
     if 'GERENTE' in col_indices:
-        col_widths[col_indices['GERENTE']] = 1.0*inch
+        col_widths[col_indices['GERENTE']] = 1.2*inch
     if 'ETAPA' in col_indices:
-        col_widths[col_indices['ETAPA']] = 1.0*inch
+        col_widths[col_indices['ETAPA']] = 1.6*inch
     if 'DATA' in col_indices:
         col_widths[col_indices['DATA']] = 1.0*inch
     if 'PRAZO MEDIO' in col_indices:
-        col_widths[col_indices['PRAZO MEDIO']] = 1.2*inch
+        col_widths[col_indices['PRAZO MEDIO']] = 1.0*inch
     if 'DESAGIO' in col_indices:
-        col_widths[col_indices['DESAGIO']] = 1.5*inch
+        col_widths[col_indices['DESAGIO']] = 1.0*inch
     if 'VALOR OPERADO' in col_indices:
-        col_widths[col_indices['VALOR OPERADO']] = 1.5*inch
+        col_widths[col_indices['VALOR OPERADO']] = 1.0*inch
     
     # Criar tabela com larguras específicas
     table = Table(pdf_data, colWidths=col_widths, repeatRows=1)
