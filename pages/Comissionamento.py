@@ -3,7 +3,7 @@ from authentication import setup_authentication
 from database import connect_to_database, fetch_data
 from data_processing import process_data, format_dataframes, rename_gerente
 from pdf_generator import generate_pdf_report
-from visualizations import create_visualizations
+from comissao import create_visualizations  # Corrigido para o arquivo correto
 import base64
 from datetime import datetime
 
@@ -63,7 +63,7 @@ try:
         mime="application/pdf"
     )
 
-    # Criar visualizações usando a função do visualizations.py
+    # Criar visualizações usando a função do comissao.py
     create_visualizations(df_filtered)
 
 except Exception as e:
