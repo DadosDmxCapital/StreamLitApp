@@ -18,10 +18,10 @@ def connect_to_database():
     load_dotenv(".env")
 
     # Pegar as credenciais
-    server = os.getenv("FABRIC_SERVER")
-    database = os.getenv("FABRIC_DATABASE")
-    username = os.getenv("FABRIC_USERNAME")
-    password = os.getenv("FABRIC_PASSWORD")
+    server = os.getenv("POSTGRES_SERVER")
+    database = os.getenv("POSTGRES_DB")
+    username = os.getenv("POSTGRES_USER")
+    password = os.getenv("POSTGRES_PASSWORD")
 
     # Verificar se as variáveis essenciais foram carregadas
     if not all([server, database, username, password]):
