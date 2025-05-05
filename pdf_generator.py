@@ -88,20 +88,20 @@ def generate_pdf_report(df, filtered=False):
     col_indices = {col: i for i, col in enumerate(df.columns)}
     
     # Ajustar larguras baseadas no tipo de dados
-    if 'CEDENTE' in col_indices:
-        col_widths[col_indices['CEDENTE']] = 3.0*inch
-    if 'GERENTE' in col_indices:
-        col_widths[col_indices['GERENTE']] = 1.2*inch
-    if 'ETAPA' in col_indices:
-        col_widths[col_indices['ETAPA']] = 1.6*inch
-    if 'DATA' in col_indices:
-        col_widths[col_indices['DATA']] = 1.0*inch
-    if 'PRAZO MEDIO' in col_indices:
-        col_widths[col_indices['PRAZO MEDIO']] = 1.0*inch
+    if 'cedente' in col_indices:
+        col_widths[col_indices['cedente']] = 3.0*inch
+    if 'gerente' in col_indices:
+        col_widths[col_indices['gerente']] = 1.2*inch
+    if 'etapa' in col_indices:
+        col_widths[col_indices['etapa']] = 1.6*inch
+    if 'data' in col_indices:
+        col_widths[col_indices['data']] = 1.0*inch
+    if 'prazo medio' in col_indices:
+        col_widths[col_indices['prazo medio']] = 1.0*inch
     if 'DESAGIO' in col_indices:
-        col_widths[col_indices['DESAGIO']] = 1.0*inch
-    if 'VALOR OPERADO' in col_indices:
-        col_widths[col_indices['VALOR OPERADO']] = 1.0*inch
+        col_widths[col_indices['desagio']] = 1.0*inch
+    if 'valor operado' in col_indices:
+        col_widths[col_indices['valor operado']] = 1.0*inch
     
     # Criar tabela com larguras específicas
     table = Table(pdf_data, colWidths=col_widths, repeatRows=1)
@@ -140,8 +140,8 @@ def generate_pdf_report(df, filtered=False):
     ])
     
     # Adicionar estilo específico para reduzir a fonte da coluna CEDENTE
-    if 'CEDENTE' in col_indices:
-        cedente_idx = col_indices['CEDENTE']
+    if 'cedente' in col_indices:
+        cedente_idx = col_indices['cedente']
         style.add('FONTSIZE', (cedente_idx, 1), (cedente_idx, -2), 7)  # Tamanho de fonte menor para a coluna Cedente
     
     table.setStyle(style)

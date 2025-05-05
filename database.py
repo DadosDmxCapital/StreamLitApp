@@ -1,71 +1,61 @@
 import os
-import pyodbc
 import pandas as pd
+from sqlalchemy import create_engine
 from dotenv import load_dotenv
 
 def connect_to_database():
     """
-    Estabelece a conexão com o banco de dados SQL Server.
-    
-    Returns:
-        pyodbc.Connection: Objeto de conexão com o banco de dados
-    
-    Raises:
-        ValueError: Se as variáveis de ambiente estiverem faltando
-        Exception: Para outros erros de conexão
+    Estabelece a conexão com o banco de dados PostgreSQL.
     """
-    # Carregar as variáveis do .env
+    # Carregar variáveis do .env
     load_dotenv(".env")
 
-    # Pegar as credenciais
+    # Obter as credenciais do ambiente
     server = os.getenv("POSTGRES_SERVER")
     database = os.getenv("POSTGRES_DB")
     username = os.getenv("POSTGRES_USER")
     password = os.getenv("POSTGRES_PASSWORD")
+    port = os.getenv("POSTGRES_PORT", "5432")  # padrão PostgreSQL
 
-    # Verificar se as variáveis essenciais foram carregadas
+    # Verificar se tudo foi carregado corretamente
     if not all([server, database, username, password]):
-        raise ValueError("Uma ou mais variáveis de ambiente estão ausentes. Verifique o seu arquivo .env!")
+        raise ValueError("Uma ou mais variáveis de ambiente estão ausentes. Verifique o arquivo .env!")
 
-    # Construir a string de conexão para pyodbc
-    conn_str = f"DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={server};DATABASE={database};UID={username};PWD={password};Authentication=ActiveDirectoryPassword"
-    
-    # Conectar ao banco de dados
-    conn = pyodbc.connect(conn_str)
-    return conn
+    # Criar a URL de conexão para SQLAlchemy
+    conn_url = f"postgresql+psycopg2://{username}:{password}@{server}:{port}/{database}"
 
-def fetch_data(conn):
+    # Criar engine de conexão
+    engine = create_engine(conn_url)
+    return engine
+
+def fetch_data(engine):
     """
-    Executa a consulta SQL e retorna os dados em um DataFrame
-    
-    Args:
-        conn (pyodbc.Connection): Conexão com o banco de dados
-        
-    Returns:
-        pandas.DataFrame: DataFrame com os dados da consulta
+    Executa a consulta SQL e retorna os dados em um DataFrame.
     """
-    # Query para recuperar os dados incluindo a coluna GERENTE
     query = """
     SELECT 
-        f.CEDENTE,
-        d.GERENTE,
-        f.ETAPA, 
-        f.DATA, 
-        f.PRAZO_MEDIO, 
-        f.VALOR_DESAGIO, 
-        f.VALOR_BRUTO 
-    FROM dbo.f_operacao f
-    LEFT JOIN dbo.d_Cedentes d ON f.CPF_CNPJ_CEDENTE = d.CPF_CNPJ
+        f.cedente,
+        d.gerente,
+        f.etapa, 
+        f.data, 
+        f.prazo_medio, 
+        f.valor_desagio, 
+        f.valor_bruto 
+    FROM fato_operacoes f
+    LEFT JOIN dimcedentesconsolidado d 
+        ON f.cpf_cnpj_cedente = d.cpf_cnpj
     """
-    
-    # Ler os dados no Pandas
-    df = pd.read_sql(query, conn)
-    
-    # Fechar conexão
-    conn.close()
-    
-    # Converter a coluna DATA para datetime se não for
-    if 'DATA' in df.columns and not pd.api.types.is_datetime64_any_dtype(df['DATA']):
-        df['DATA'] = pd.to_datetime(df['DATA'], errors='coerce')
-    
+
+    with engine.connect() as conn:
+        df = pd.read_sql(query, conn)
+
+    # Conversão de data
+    if 'data' in df.columns and not pd.api.types.is_datetime64_any_dtype(df['data']):
+        df['data'] = pd.to_datetime(df['data'], errors='coerce')
+
     return df
+
+if __name__ == "__main__":
+    engine = connect_to_database()
+    df = fetch_data(engine)
+    print(df.head())

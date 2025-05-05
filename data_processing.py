@@ -11,25 +11,19 @@ except:
     except:
         pass  # Se ambos falharem, usaremos formatação manual
 
-# Função para formatar valores monetários com vírgula como separador decimal
+# Formatação de valores
 def format_currency(value):
-    # Formatar com ponto para milhares e vírgula para decimais
-    # Ex: 1.234,56
     return f"R$ {value:,.2f}".replace(".", "X").replace(",", ".").replace("X", ",")
 
-# Função para formatar números decimais com vírgula como separador decimal
 def format_decimal(value, digits=2):
-    # Formatar com vírgula para decimais
-    # Ex: 12,34
     return f"{value:.{digits}f}".replace(".", ",")
 
-# Função para formatar data no formato curto (dd/mm/aaaa)
 def format_short_date(date):
     if pd.isna(date):
         return ""
     return date.strftime('%d/%m/%Y')
 
-# Função para renomear gerentes
+# Renomear gerentes
 def rename_gerente(gerente):
     if pd.isna(gerente):
         return gerente
@@ -43,38 +37,23 @@ def rename_gerente(gerente):
         "*COMERCIAL - MANUEL SANJI GOMES KOMIYAMA": "MANUEL",
         "*COMERCIAL - ROLAN GABRIEL SYLVESTRE MARINO": "ROLAN",
         "*COMERCIAL RODRIGO WEISSINGER CARVALHO***": "RODRIGO",
-        "DMX FUNDO DE INVESTIMENTO EM DIREITOS CREDITORIOS": "DMX Capital",
-        "DMX FUNDO DE INVESTIMENTO EM DIREITOS CREDITORIOS": "DMX Capital",
         "DMX FUNDO DE INVESTIMENTO EM DIREITOS CREDITORIOS": "DMX Capital"
     }
 
-    gerente_normalizado = gerente.strip().upper()  # Remover espaços extras e padronizar caixa alta
+    gerente_normalizado = gerente.strip().upper()
     return mapping.get(gerente_normalizado, gerente)
 
+# Filtros via Streamlit
 def process_data(df):
-    """
-    Aplica filtros do Streamlit e retorna os dados filtrados.
-    
-    Args:
-        df (pandas.DataFrame): DataFrame original
-        
-    Returns:
-        pandas.DataFrame: DataFrame com filtros aplicados
-    """
-    # Aplicar rename ao gerente se necessário
-    if 'GERENTE' in df.columns:
-        df['GERENTE'] = df['GERENTE'].apply(rename_gerente)
-    
-    # Inicializar df_filtered com o dataframe original
+    if 'gerente' in df.columns:
+        df['gerente'] = df['gerente'].apply(rename_gerente)
+
     df_filtered = df
-    
-    # Filtro de período
-    if 'DATA' in df.columns:
-        # Extrair datas mínima e máxima
-        min_date = df['DATA'].min().date()
-        max_date = df['DATA'].max().date()
-        
-        # Filtro de período
+
+    if 'data' in df.columns:
+        min_date = df['data'].min().date()
+        max_date = df['data'].max().date()
+
         st.sidebar.subheader("Filtro por Período")
         date_range = st.sidebar.date_input(
             "Selecione o período",
@@ -82,131 +61,107 @@ def process_data(df):
             min_value=min_date,
             max_value=max_date
         )
-        
-        # Aplicar filtro de data
         if len(date_range) == 2:
             start_date, end_date = date_range
-            mask = (df['DATA'].dt.date >= start_date) & (df['DATA'].dt.date <= end_date)
+            mask = (df['data'].dt.date >= start_date) & (df['data'].dt.date <= end_date)
             df_filtered = df.loc[mask]
     else:
         st.sidebar.warning("A coluna 'DATA' não foi encontrada na tabela")
-    
-    # Filtro de cedentes
-    if 'CEDENTE' in df.columns:
+
+    if 'cedente' in df.columns:
         st.sidebar.subheader("Filtro por Cedente")
-        cedentes = sorted(df['CEDENTE'].dropna().unique())
+        cedentes = sorted(df['cedente'].dropna().unique())
         selected_cedentes = st.sidebar.multiselect("Selecione os cedentes", cedentes)
-        
-        # Aplicar filtro de cedentes
         if selected_cedentes:
-            df_filtered = df_filtered[df_filtered['CEDENTE'].isin(selected_cedentes)]
-    
-    # Filtro de GERENTES
-    if 'GERENTE' in df.columns:
+            df_filtered = df_filtered[df_filtered['cedente'].isin(selected_cedentes)]
+
+    if 'gerente' in df.columns:
         st.sidebar.subheader("Filtro por Gerente")
-        gerentes = sorted(df['GERENTE'].dropna().unique())
+        gerentes = sorted(df['gerente'].dropna().unique())
         selected_gerentes = st.sidebar.multiselect("Selecione os gerentes", gerentes)
-        
-        # Aplicar filtro de gerentes
         if selected_gerentes:
-            df_filtered = df_filtered[df_filtered['GERENTE'].isin(selected_gerentes)]
+            df_filtered = df_filtered[df_filtered['gerente'].isin(selected_gerentes)]
     else:
         st.sidebar.warning("A coluna 'GERENTE' não foi encontrada na tabela")
-            
-    # Filtro de ETAPAS
-    if 'ETAPA' in df.columns:
-        st.sidebar.subheader("Filtro por ETAPA")
-        etapa = sorted(df['ETAPA'].dropna().unique())
-        selected_etapa = st.sidebar.multiselect("Selecione a Etapa", etapa)
-        
-        # Aplicar filtro de etapas
-        if selected_etapa:
-            df_filtered = df_filtered[df_filtered['ETAPA'].isin(selected_etapa)] 
+
+    if 'etapa' in df.columns:
+        st.sidebar.subheader("Filtro por Etapa")
+        etapas = sorted(df['etapa'].dropna().unique())
+        selected_etapas = st.sidebar.multiselect("Selecione as etapas", etapas)
+        if selected_etapas:
+            df_filtered = df_filtered[df_filtered['etapa'].isin(selected_etapas)]
     else:
         st.sidebar.warning("A coluna 'ETAPA' não foi encontrada na tabela")
-        
+
     return df_filtered
 
+# Agrupamento, cálculo e formatação
 def format_dataframes(df_filtered):
-    """
-    Processa os dados filtrados, agrupa por cedente/gerente e formata os valores
-    
-    Args:
-        df_filtered (pandas.DataFrame): DataFrame com filtros aplicados
-    
-    Returns:
-        tuple: (df_grouped, df_grouped_with_totals, summary_stats)
-    """
-    # Agrupar por cedente e calcular as métricas necessárias
-    if 'CAPTADOR' in df_filtered.columns:
-        df_grouped = df_filtered.groupby(['CAPTADOR', 'CEDENTE', 'GERENTE', 'ETAPA']).agg(
-            DATA_MAIS_RECENTE=('DATA', 'max'),
-            PRAZO_MEDIO=('PRAZO_MEDIO', 'mean'),
-            DESAGIO=('VALOR_DESAGIO', 'sum'),
-            VALOR_OPERADO=('VALOR_BRUTO', 'sum')
-        ).reset_index()
-    else:
-        df_grouped = df_filtered.groupby(['CEDENTE', 'GERENTE', 'ETAPA']).agg(
-            DATA_MAIS_RECENTE=('DATA', 'max'),
-            PRAZO_MEDIO=('PRAZO_MEDIO', 'mean'),
-            DESAGIO=('VALOR_DESAGIO', 'sum'),
-            VALOR_OPERADO=('VALOR_BRUTO', 'sum')
-        ).reset_index()
-    
-    # Renomear colunas
+    has_captador = 'captador' in df_filtered.columns
+    has_prazo_medio = 'prazo_medio' in df_filtered.columns
+
+    group_cols = ['cedente', 'gerente', 'etapa']
+    if has_captador:
+        group_cols = ['captador'] + group_cols
+
+    agg_dict = {
+        'data': ('data', 'max'),
+        'valor_desagio': ('valor_desagio', 'sum'),
+        'valor_bruto': ('valor_bruto', 'sum')
+    }
+
+    if has_prazo_medio:
+        agg_dict['prazo_medio'] = ('prazo_medio', 'mean')
+
+    df_grouped = df_filtered.groupby(group_cols).agg(**agg_dict).reset_index()
+
     df_grouped = df_grouped.rename(columns={
-        'DATA_MAIS_RECENTE': 'DATA',
-        'PRAZO_MEDIO': 'PRAZO MEDIO',
-        'DESAGIO': 'DESAGIO',
-        'VALOR_OPERADO': 'VALOR OPERADO'
+        'data': 'data',
+        'prazo_medio': 'PRAZO MEDIO',
+        'valor_desagio': 'DESAGIO',
+        'valor_bruto': 'VALOR OPERADO'
     })
-    
-    # Formatar a coluna DATA para formato curto (dd/mm/aaaa)
-    df_grouped['DATA'] = df_grouped['DATA'].apply(format_short_date)
-    
-    # Calcular os totais de DESAGIO e VALOR OPERADO
-    total_desagio = df_filtered['VALOR_DESAGIO'].sum()
-    total_valor_operado = df_filtered['VALOR_BRUTO'].sum()
-    
-    # Calcular o PRAZO MEDIO geral (média ponderada pelo valor operado)
-    prazo_medio_geral = (df_filtered['PRAZO_MEDIO'] * df_filtered['VALOR_BRUTO']).sum() / df_filtered['VALOR_BRUTO'].sum() if df_filtered['VALOR_BRUTO'].sum() > 0 else 0
-    
-    # Formatar as colunas numéricas para melhor visualização
-    df_grouped['PRAZO MEDIO'] = df_grouped['PRAZO MEDIO'].apply(lambda x: format_decimal(x, 2))
+
+    df_grouped['data'] = df_grouped['data'].apply(format_short_date)
+    if has_prazo_medio:
+        df_grouped['PRAZO MEDIO'] = df_grouped['PRAZO MEDIO'].apply(lambda x: format_decimal(x, 2))
     df_grouped['DESAGIO'] = df_grouped['DESAGIO'].apply(format_currency)
     df_grouped['VALOR OPERADO'] = df_grouped['VALOR OPERADO'].apply(format_currency)
-    
-    # Resumo estatístico para uso em outras funções
+
+    total_desagio = df_filtered['valor_desagio'].sum()
+    total_valor_operado = df_filtered['valor_bruto'].sum()
+
+    prazo_medio_geral = 0
+    if has_prazo_medio and total_valor_operado > 0:
+        prazo_medio_geral = (
+            (df_filtered['prazo_medio'] * df_filtered['valor_bruto']).sum() / total_valor_operado
+        )
+
+    totals_data = {
+        'cedente': ['TOTAL'],
+        'gerente': [''],
+        'etapa': [''],
+        'data': [''],
+        'DESAGIO': [format_currency(total_desagio)],
+        'VALOR OPERADO': [format_currency(total_valor_operado)]
+    }
+
+    if has_prazo_medio:
+        totals_data['PRAZO MEDIO'] = [format_decimal(prazo_medio_geral, 2)]
+
+    if has_captador:
+        totals_data['captador'] = ['TOTAL']
+        for col in df_grouped.columns:
+            if col not in totals_data:
+                totals_data[col] = ['']
+
+    totals_row = pd.DataFrame(totals_data)
+    df_grouped_with_totals = pd.concat([df_grouped, totals_row], ignore_index=True)
+
     summary_stats = {
         'total_desagio': total_desagio,
         'total_valor_operado': total_valor_operado,
-        'prazo_medio_geral': prazo_medio_geral
+        'prazo_medio_geral': prazo_medio_geral if has_prazo_medio else None
     }
-    
-    # Criar uma linha de totais para adicionar ao final do dataframe
-    if 'CAPTADOR' in df_grouped.columns:
-        totals_row = pd.DataFrame({
-            'CAPTADOR': ['TOTAL'],
-            'CEDENTE': [''],
-            'GERENTE': [''],
-            'ETAPA': [''],
-            'DATA': [''],
-            'PRAZO MEDIO': [format_decimal(prazo_medio_geral, 2)],  # Prazo médio geral
-            'DESAGIO': [format_currency(total_desagio)],
-            'VALOR OPERADO': [format_currency(total_valor_operado)]
-        })
-    else:
-        totals_row = pd.DataFrame({
-            'CEDENTE': ['TOTAL'],
-            'GERENTE': [''],
-            'ETAPA': [''],
-            'DATA': [''],
-            'PRAZO MEDIO': [format_decimal(prazo_medio_geral, 2)],  # Prazo médio geral
-            'DESAGIO': [format_currency(total_desagio)],
-            'VALOR OPERADO': [format_currency(total_valor_operado)]
-        })
-    
-    # Adicionar linha de totais ao DataFrame
-    df_grouped_with_totals = pd.concat([df_grouped, totals_row], ignore_index=True)
-    
+
     return df_grouped, df_grouped_with_totals, summary_stats
